@@ -307,14 +307,14 @@ module MetadataChangesSupport
     end
 
     def find_instance_of_class_by_uuid(klass, instance_or_uuid_or_id, create=false)
-      if ExtractionTokenUtil.is_wildcard?(instance_or_uuid_or_id)
+      if ExtractionTokenUtil.wildcard?(instance_or_uuid_or_id)
         uuid = uuid_for_wildcard(instance_or_uuid_or_id)
         # Do not try to find it if it is a new wildcard created
         found = find_instance_from_uuid(klass, uuid) unless create
         if !found && create
           found = ((instances_from_uuid[uuid] ||= klass.new(uuid: uuid)))
         end
-      elsif ExtractionTokenUtil.is_uuid?(instance_or_uuid_or_id)
+      elsif ExtractionTokenUtil.uuid?(instance_or_uuid_or_id)
         found = find_instance_from_uuid(klass, instance_or_uuid_or_id)
         if !found && create
           found = ((instances_from_uuid[instance_or_uuid_or_id] ||= klass.new(uuid: instance_or_uuid_or_id)))
