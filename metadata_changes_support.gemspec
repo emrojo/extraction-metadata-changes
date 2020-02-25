@@ -15,4 +15,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency "rspec", '~> 3'
   s.add_development_dependency "factory_bot", '~> 5'
   s.add_development_dependency "pry"
+  s.add_development_dependency "byebug"
 end

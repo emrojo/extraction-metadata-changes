@@ -1,11 +1,11 @@
-class Fact < MockModel
+class Fact < MockedModel
   attributes([
       :id, :asset, :asset_id, :predicate, :object,
       :object_asset, :object_asset_id, :literal
     ])
 
   def self.with_predicate(pred)
-    find_by(predicate: pred)
+    where(predicate: pred)
   end
 end
 

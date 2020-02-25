@@ -1,5 +1,6 @@
 require 'pry'
-class MockModel
+
+class MockedModel
 
   def self.attrs=(params)
     @attrs = params
@@ -7,6 +8,13 @@ class MockModel
 
   def self.attrs
     @attrs
+  end
+
+  def attributes
+    self.class.attrs.reduce({}) do |memo, key|
+      memo[key] = send(key)
+      memo
+    end
   end
 
   def self.instances
@@ -25,9 +33,7 @@ class MockModel
   end
 
   def self.find_by(params)
-    list = where(params)
-    return list.first if list.length == 1
-    list
+    where(params).first
   end
 
   def self.where(params)
@@ -38,6 +44,9 @@ class MockModel
 
   def save
     true
+  end
+
+  def save!
   end
 
   def new_record?

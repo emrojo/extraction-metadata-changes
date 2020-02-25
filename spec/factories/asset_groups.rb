@@ -1,4 +1,4 @@
-class AssetGroup < MockModel
+class AssetGroup < MockedModel
   attributes([:id, :uuid, :assets])
 end
 

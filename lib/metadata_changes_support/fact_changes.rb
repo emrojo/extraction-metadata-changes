@@ -3,7 +3,6 @@ require 'extraction_token_util'
 
 module MetadataChangesSupport
   class FactChanges
-    include MetadataChangesSupport::TransactionScope
 
     attr_accessor :facts_to_destroy, :facts_to_add, :assets_to_create, :assets_to_destroy,
       :assets_to_add, :assets_to_remove, :wildcards, :instances_from_uuid,
@@ -110,10 +109,10 @@ module MetadataChangesSupport
       actual_values = asset.facts.with_predicate(predicate).map(&:object)
       values_to_add = facts_to_add.select do |f|
         (f[:asset] == asset) && (f[:predicate] == predicate)
-      end.pluck(:object)
+      end.map{|f| f[:object]}
       values_to_destroy = facts_to_destroy.select do |f|
         (f[:asset] == asset) && (f[:predicate] == predicate)
-      end.pluck(:object)
+      end.map{|f| f[:object]}
       (actual_values + values_to_add - values_to_destroy)
     end
 
