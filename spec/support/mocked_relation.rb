@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class MockedRelation
   def initialize(list)
     @list = list

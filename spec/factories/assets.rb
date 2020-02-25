@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 class Asset < MockedModel
-  attributes([:id, :asset, :barcode, :uuid, :facts])
+  attributes(%i[id asset barcode uuid facts])
 end
 
 FactoryBot.define do
@@ -15,7 +17,6 @@ FactoryBot.define do
     uuid { SecureRandom.uuid }
     barcode { nil }
     facts { MockedRelation.new([]) }
-
 
     after(:build) do |asset|
       asset.facts.set_parent(asset)

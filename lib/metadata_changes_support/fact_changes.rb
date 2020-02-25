@@ -1,20 +1,20 @@
+# frozen_string_literal: true
+
 require 'securerandom'
 require 'extraction_token_util'
 
 module MetadataChangesSupport
   class FactChanges
-
     attr_accessor :facts_to_destroy, :facts_to_add, :assets_to_create, :assets_to_destroy,
-      :assets_to_add, :assets_to_remove, :wildcards, :instances_from_uuid,
-      :asset_groups_to_create, :asset_groups_to_destroy, :errors_added,
-      :already_added_to_list, :instances_by_unique_id,
-      :facts_to_set_to_remote
+                  :assets_to_add, :assets_to_remove, :wildcards, :instances_from_uuid,
+                  :asset_groups_to_create, :asset_groups_to_destroy, :errors_added,
+                  :already_added_to_list, :instances_by_unique_id,
+                  :facts_to_set_to_remote
 
     attr_accessor :operations
 
-
-    def initialize(json=nil)
-      @assets_updated=[]
+    def initialize(json = nil)
+      @assets_updated = []
       reset
       parse_json(json) if json
     end
@@ -44,18 +44,17 @@ module MetadataChangesSupport
 
       list1.add_disjoint_list(list2)
 
-      send("#{list.to_s}=", list1)
-      send("#{opposite.to_s}=", list2)
+      send("#{list}=", list1)
+      send("#{opposite}=", list2)
     end
 
     def asset_group_asset_to_h(asset_group_asset_str)
-      asset_group_asset_str.reduce({}) do |memo, o|
-        key = (o[:asset_group] && o[:asset_group].uuid) || nil
+      asset_group_asset_str.each_with_object({}) do |o, memo|
+        key = o[:asset_group]&.uuid || nil
         memo[key] = [] unless memo[key]
         memo[key].push(o[:asset].uuid)
-        memo
-      end.map do |k,v|
-        [k,v]
+      end.map do |k, v|
+        [k, v]
       end
     end
 
@@ -87,20 +86,18 @@ module MetadataChangesSupport
         end,
         'add_assets': asset_group_asset_to_h(@assets_to_add),
         'remove_assets': asset_group_asset_to_h(@assets_to_remove)
-      }.reject {|k,v| v.length == 0 }
+      }.reject { |_k, v| v.empty? }
     end
 
-    def to_json
+    def to_json(*_args)
       JSON.pretty_generate(to_h)
     end
 
     def parse_json(json)
       obj = JSON.parse(json)
-      ['set_errors', 'create_assets', 'create_asset_groups', 'delete_asset_groups',
-        'remove_facts', 'add_facts', 'delete_assets', 'add_assets', 'remove_assets'].each do |action_type|
-        if obj[action_type]
-          send(action_type, obj[action_type])
-        end
+      %w[set_errors create_assets create_asset_groups delete_asset_groups
+         remove_facts add_facts delete_assets add_assets remove_assets].each do |action_type|
+        send(action_type, obj[action_type]) if obj[action_type]
       end
       @parsing_valid = true
     end
@@ -109,29 +106,29 @@ module MetadataChangesSupport
       actual_values = asset.facts.with_predicate(predicate).map(&:object)
       values_to_add = facts_to_add.select do |f|
         (f[:asset] == asset) && (f[:predicate] == predicate)
-      end.map{|f| f[:object]}
+      end.map { |f| f[:object] }
       values_to_destroy = facts_to_destroy.select do |f|
         (f[:asset] == asset) && (f[:predicate] == predicate)
-      end.map{|f| f[:object]}
+      end.map { |f| f[:object] }
       (actual_values + values_to_add - values_to_destroy)
     end
 
-    def _build_fact_attributes(s, p, o, options={})
-      t = [s,p,o, options]
-      params = {asset: t[0], predicate: t[1], literal: !(t[2].kind_of?(Asset))}
+    def _build_fact_attributes(s, p, o, options = {})
+      t = [s, p, o, options]
+      params = { asset: t[0], predicate: t[1], literal: !t[2].is_a?(Asset) }
       params[:literal] ? params[:object] = t[2] : params[:object_asset] = t[2]
       params = params.merge(t[3]) if t[3]
       params
     end
 
-    def add(s,p,o, options={})
+    def add(s, p, o, options = {})
       s = find_asset(s)
-      o = (options[:literal]==true) ? literal_token(o) : find_asset(o)
+      o = options[:literal] == true ? literal_token(o) : find_asset(o)
 
       fact = _build_fact_attributes(s, p, o, options)
 
       facts_to_add << fact if fact
-      #facts_to_add.push(track_object(params)) unless detected
+      # facts_to_add.push(track_object(params)) unless detected
     end
 
     def literal_token(str)
@@ -139,29 +136,29 @@ module MetadataChangesSupport
     end
 
     def add_facts(listOfLists)
-      listOfLists.each{|list| add(list[0], list[1], list[2])}
+      listOfLists.each { |list| add(list[0], list[1], list[2]) }
       self
     end
 
     def remove_facts(listOfLists)
-      listOfLists.each{|list| remove_where(list[0], list[1], list[2])}
+      listOfLists.each { |list| remove_where(list[0], list[1], list[2]) }
       self
     end
 
-    def add_remote(s,p,o, options={})
-      add(s,p,o, options.merge({is_remote?: true})) if (s && p && o)
+    def add_remote(s, p, o, options = {})
+      add(s, p, o, options.merge({ is_remote?: true })) if s && p && o
     end
 
-    def replace_remote_relation(asset, predicate, object_asset, options={})
-      replace_remote(asset,predicate,object_asset, options.merge({literal: false}))
+    def replace_remote_relation(asset, predicate, object_asset, options = {})
+      replace_remote(asset, predicate, object_asset, options.merge({ literal: false }))
     end
 
-    def replace_remote_property(asset, predicate, value, options={})
-      replace_remote(asset,predicate,value, options.merge({literal: true}))
+    def replace_remote_property(asset, predicate, value, options = {})
+      replace_remote(asset, predicate, value, options.merge({ literal: true }))
     end
 
-    def replace_remote(asset, p, o, options={})
-      if (asset && p && o)
+    def replace_remote(asset, p, o, options = {})
+      if asset && p && o
         asset.facts.with_predicate(p).each do |fact|
           # The value is updated from the remote instance so we remove the previous value
           remove(fact)
@@ -174,9 +171,10 @@ module MetadataChangesSupport
 
     def remove(f)
       return if f.nil?
-      if f.kind_of?(Enumerable)
-        facts_to_destroy << f.map{|o| o.attributes.symbolize_keys}
-      elsif f.kind_of?(Fact)
+
+      if f.is_a?(Enumerable)
+        facts_to_destroy << f.map { |o| o.attributes.symbolize_keys }
+      elsif f.is_a?(Fact)
         facts_to_destroy << f.attributes.symbolize_keys if f
       end
     end
@@ -191,20 +189,20 @@ module MetadataChangesSupport
     end
 
     def has_errors?
-      to_h.has_key?(:set_errors)
+      to_h.key?(:set_errors)
     end
 
     def merge_hash(h1, h2)
       h2.keys.each do |k|
-        h1[k]=h2[k]
+        h1[k] = h2[k]
       end
       h1
     end
 
     def merge(fact_changes)
-      if (fact_changes)
+      if fact_changes
         # To keep track of already added object after merging with another fact changes object
-        #_add_already_added_from_other_object(fact_changes)
+        # _add_already_added_from_other_object(fact_changes)
         errors_added.concat(fact_changes.errors_added)
         asset_groups_to_create.concat(fact_changes.asset_groups_to_create)
         assets_to_create.concat(fact_changes.assets_to_create)
@@ -220,9 +218,9 @@ module MetadataChangesSupport
       self
     end
 
-    def apply(step, with_operations=true)
-      _handle_errors(step) if errors_added.length > 0
-      ActiveRecord::Base.transaction do |t|
+    def apply(step, with_operations = true)
+      _handle_errors(step) unless errors_added.empty?
+      ActiveRecord::Base.transaction do |_t|
         # We need step to have an allocated id to be able to link it with the operations
         # so we have to create a new record if is not already stored
         step.save unless step.persisted?
@@ -250,15 +248,15 @@ module MetadataChangesSupport
           @operations = operations
         end
         step.save if step.changed?
-        _handle_errors(step) if errors_added.length > 0
+        _handle_errors(step) unless errors_added.empty?
         reset
       end
-
     end
 
     def assets_updated
       return [] unless @operations
-      @assets_updated=Asset.where(id: @operations.pluck(:asset_id).uniq).distinct
+
+      @assets_updated = Asset.where(id: @operations.pluck(:asset_id).uniq).distinct
     end
 
     def assets_for_printing
@@ -275,7 +273,7 @@ module MetadataChangesSupport
       end.map(&:asset).compact.uniq.map(&:uuid)
 
       ids_for_print = asset_ids.concat(ready_for_print_ids).flatten.uniq
-      @assets_for_printing=Asset.for_printing.where(uuid: ids_for_print)
+      @assets_for_printing = Asset.for_printing.where(uuid: ids_for_print)
     end
 
     def find_asset(asset_or_uuid)
@@ -306,7 +304,7 @@ module MetadataChangesSupport
       !!(instances_from_uuid[uuid] && instances_from_uuid[uuid].new_record?)
     end
 
-    def find_instance_of_class_by_uuid(klass, instance_or_uuid_or_id, create=false)
+    def find_instance_of_class_by_uuid(klass, instance_or_uuid_or_id, create = false)
       if ExtractionTokenUtil.wildcard?(instance_or_uuid_or_id)
         uuid = uuid_for_wildcard(instance_or_uuid_or_id)
         # Do not try to find it if it is a new wildcard created
@@ -322,7 +320,9 @@ module MetadataChangesSupport
       else
         found = instance_or_uuid_or_id
       end
-      _produce_error(["Element identified by #{instance_or_uuid_or_id} should be declared before using it"]) unless found
+      unless found
+        _produce_error(["Element identified by #{instance_or_uuid_or_id} should be declared before using it"])
+      end
       found
     end
 
@@ -331,21 +331,21 @@ module MetadataChangesSupport
     end
 
     def wildcard_for_uuid(uuid)
-      wildcards.keys.select{|key| wildcards[key] == uuid}.first
+      wildcards.keys.select { |key| wildcards[key] == uuid }.first
     end
 
     def find_instance_from_uuid(klass, uuid)
-      found = klass.find_by(uuid:uuid) unless is_new_record?(uuid)
+      found = klass.find_by(uuid: uuid) unless is_new_record?(uuid)
       return found if found
+
       instances_from_uuid[uuid]
     end
 
-
     def validate_instances(instances)
-      if instances.kind_of?(Array)
-        instances.each{|a| raise StandardError.new(a) if a.nil? }
+      if instances.is_a?(Array)
+        instances.each { |a| raise StandardError, a if a.nil? }
       else
-        raise StandardError.new(a) if instances.nil?
+        raise StandardError, a if instances.nil?
       end
       instances
     end
@@ -357,25 +357,25 @@ module MetadataChangesSupport
 
     def create_assets(assets)
       assets_to_create << validate_instances(build_assets(assets))
-      #assets_to_create.concat(validate_instances(build_assets(assets)))
+      # assets_to_create.concat(validate_instances(build_assets(assets)))
       self
     end
 
     def create_asset_groups(asset_groups)
       asset_groups_to_create << validate_instances(build_asset_groups(asset_groups))
-      #asset_groups_to_create.concat(validate_instances(build_asset_groups(asset_groups))).uniq!
+      # asset_groups_to_create.concat(validate_instances(build_asset_groups(asset_groups))).uniq!
       self
     end
 
     def delete_asset_groups(asset_groups)
       asset_groups_to_destroy << validate_instances(find_asset_groups(asset_groups))
-      #asset_groups_to_destroy.concat(validate_instances(find_asset_groups(asset_groups))).uniq!
+      # asset_groups_to_destroy.concat(validate_instances(find_asset_groups(asset_groups))).uniq!
       self
     end
 
     def delete_assets(assets)
       assets_to_destroy << validate_instances(find_assets(assets))
-      #assets_to_destroy.concat(validate_instances(find_assets(assets))).uniq!
+      # assets_to_destroy.concat(validate_instances(find_assets(assets))).uniq!
       self
     end
 
@@ -389,7 +389,7 @@ module MetadataChangesSupport
 
     def add_assets(list)
       list.each do |elem|
-        if ((elem.length > 0) && elem[1].kind_of?(Array))
+        if !elem.empty? && elem[1].is_a?(Array)
           asset_group = elem[0].nil? ? nil : validate_instances(find_asset_group(elem[0]))
           asset_ids = elem[1]
         else
@@ -397,24 +397,24 @@ module MetadataChangesSupport
           asset_ids = elem
         end
         assets = validate_instances(find_assets(asset_ids))
-        assets_to_add << assets.map{|asset| { asset_group: asset_group, asset: asset} }
+        assets_to_add << assets.map { |asset| { asset_group: asset_group, asset: asset } }
       end
       self
     end
 
     def remove_assets(list)
       list.each do |elem|
-        if ((elem.length > 0) && elem[1].kind_of?(Array))
-          asset_group = elem[0].nil? ? nil :validate_instances(find_asset_group(elem[0]))
+        if !elem.empty? && elem[1].is_a?(Array)
+          asset_group = elem[0].nil? ? nil : validate_instances(find_asset_group(elem[0]))
           asset_ids = elem[1]
         else
           asset_group = nil
           asset_ids = elem
         end
         assets = validate_instances(find_assets(asset_ids))
-        assets_to_remove << assets.map{|asset| { asset_group: asset_group, asset: asset} }
-        #add_to_list_keep_unique(assets.map{|asset| { asset_group: asset_group, asset: asset} }, :assets_to_remove, :assets_to_add)
-        #assets_to_remove.concat(assets.map{|asset| { asset_group: asset_group, asset: asset} })
+        assets_to_remove << assets.map { |asset| { asset_group: asset_group, asset: asset } }
+        # add_to_list_keep_unique(assets.map{|asset| { asset_group: asset_group, asset: asset} }, :assets_to_remove, :assets_to_add)
+        # assets_to_remove.concat(assets.map{|asset| { asset_group: asset_group, asset: asset} })
       end
       self
     end
@@ -423,7 +423,7 @@ module MetadataChangesSupport
 
     def _handle_errors(step)
       step.set_errors(errors_added)
-      _produce_error(errors_added) if errors_added.length > 0
+      _produce_error(errors_added) unless errors_added.empty?
     end
 
     def _produce_error(errors_added)
@@ -453,18 +453,21 @@ module MetadataChangesSupport
         )
       end
       _instances_deletion(AssetGroupsAsset, modified_list) do |asset_group_assets|
-        _asset_group_operations('removeAssets', step, asset_group_assets) if with_operations
+        if with_operations
+          _asset_group_operations('removeAssets', step, asset_group_assets)
+        end
       end
     end
 
-    def _create_assets(step, assets, with_operations=true)
+    def _create_assets(step, assets, with_operations = true)
       return unless assets
+
       count = Asset.count + 1
       assets = assets.each_with_index.map do |asset, barcode_index|
         _build_barcode(asset, count + barcode_index)
         asset
       end
-      _instance_builder_for_import(Asset, assets) do |instances|
+      _instance_builder_for_import(Asset, assets) do |_instances|
         _asset_operations('createAssets', step, assets) if with_operations
       end
     end
@@ -475,7 +478,7 @@ module MetadataChangesSupport
     def _build_barcode(asset, i)
       barcode_type = values_for_predicate(asset, 'barcodeType').first
 
-      unless (barcode_type == 'NoBarcode')
+      unless barcode_type == 'NoBarcode'
         barcode = values_for_predicate(asset, 'barcode').first
         if barcode
           asset.barcode = barcode
@@ -485,55 +488,62 @@ module MetadataChangesSupport
       end
     end
 
-    def _detach_assets(step, assets, with_operations=true)
-      operations = _asset_operations('deleteAssets', step, assets) if with_operations
+    def _detach_assets(step, assets, with_operations = true)
+      if with_operations
+        operations = _asset_operations('deleteAssets', step, assets)
+      end
       _instances_deletion(Fact, assets.map(&:facts).flatten.compact)
       _instances_deletion(AssetGroupsAsset, assets.map(&:asset_groups_assets).flatten.compact)
       operations
     end
 
-    def _create_asset_groups(step, asset_groups, with_operations=true)
+    def _create_asset_groups(step, asset_groups, with_operations = true)
       return unless asset_groups
-      asset_groups.each_with_index do |asset_group, index|
+
+      asset_groups.each_with_index do |asset_group, _index|
         asset_group.update_attributes(
           name: ExtractionTokenUtil.to_asset_group_name(wildcard_for_uuid(asset_group.uuid)),
           activity_owner: step.activity
         )
         asset_group.save
       end
-      _asset_group_building_operations('createAssetGroups', step, asset_groups) if with_operations
+      if with_operations
+        _asset_group_building_operations('createAssetGroups', step, asset_groups)
+      end
     end
 
-    def _detach_asset_groups(step, asset_groups, with_operations=true)
-      operations = _asset_group_building_operations('deleteAssetGroups', step, asset_groups) if with_operations
+    def _detach_asset_groups(step, asset_groups, with_operations = true)
+      if with_operations
+        operations = _asset_group_building_operations('deleteAssetGroups', step, asset_groups)
+      end
       instances = asset_groups.flatten
       ids_to_remove = instances.map(&:id).compact.uniq
 
-      AssetGroup.where(id: ids_to_remove).update_all(activity_owner_id: nil) if ids_to_remove && !ids_to_remove.empty?
+      if ids_to_remove && !ids_to_remove.empty?
+        AssetGroup.where(id: ids_to_remove).update_all(activity_owner_id: nil)
+      end
       operations
     end
 
-    def _create_facts(step, params_for_facts, with_operations=true)
+    def _create_facts(step, params_for_facts, with_operations = true)
       _instance_builder_for_import(Fact, params_for_facts) do |facts|
         _fact_operations('addFacts', step, facts) if with_operations
       end
     end
 
-
-    def _remove_facts(step, facts_to_remove, with_operations=true)
+    def _remove_facts(step, facts_to_remove, with_operations = true)
       ids = []
-      modified_list = facts_to_remove.reduce([]) do |memo, data|
+      modified_list = facts_to_remove.each_with_object([]) do |data, memo|
         if data[:id]
           ids.push(data[:id])
-        elsif data[:object].kind_of? String
+        elsif data[:object].is_a? String
           elems = Fact.where(asset: data[:asset], predicate: data[:predicate],
-            object: data[:object])
+                             object: data[:object])
         else
           elems = Fact.where(asset: data[:asset], predicate: data[:predicate],
-            object_asset: data[:object_asset])
+                             object_asset: data[:object_asset])
         end
         memo.concat(elems) if elems
-        memo
       end.concat(Fact.where(id: ids))
       _instances_deletion(Fact, modified_list) do
         _fact_operations('removeFacts', step, modified_list) if with_operations
@@ -547,16 +557,16 @@ module MetadataChangesSupport
     end
 
     def _asset_group_operations(action_type, step, asset_group_assets)
-      asset_group_assets.map do |asset_group_asset, index|
-        Operation.new(:action_type => action_type, :step => step,
-          :asset=> asset_group_asset.asset, object: asset_group_asset.asset_group.uuid)
+      asset_group_assets.map do |asset_group_asset, _index|
+        Operation.new(action_type: action_type, step: step,
+                      asset: asset_group_asset.asset, object: asset_group_asset.asset_group.uuid)
       end
     end
 
     def _asset_operations(action_type, step, assets)
-      assets.map do |asset, index|
-        #refer = (action_type == 'deleteAsset' ? nil : asset)
-        Operation.new(:action_type => action_type, :step => step, object: asset.uuid)
+      assets.map do |asset, _index|
+        # refer = (action_type == 'deleteAsset' ? nil : asset)
+        Operation.new(action_type: action_type, step: step, object: asset.uuid)
       end
     end
 
@@ -567,9 +577,11 @@ module MetadataChangesSupport
     def _fact_operations(action_type, step, facts)
       modified_assets = []
       operations = facts.map do |fact|
-        modified_assets.push(fact.object_asset) if listening_to_predicate?(fact.predicate)
-        Operation.new(:action_type => action_type, :step => step,
-          :asset=> fact.asset, :predicate => fact.predicate, :object => fact.object, object_asset: fact.object_asset)
+        if listening_to_predicate?(fact.predicate)
+          modified_assets.push(fact.object_asset)
+        end
+        Operation.new(action_type: action_type, step: step,
+                      asset: fact.asset, predicate: fact.predicate, object: fact.object, object_asset: fact.object_asset)
       end
       modified_assets.flatten.compact.uniq.each(&:touch)
       operations
@@ -581,17 +593,14 @@ module MetadataChangesSupport
       end
     end
 
-    def _instance_builder_for_import(klass, params_list, &block)
-
+    def _instance_builder_for_import(klass, params_list)
       instances = params_list.map do |params_for_instance|
-        unless (params_for_instance.kind_of?(klass))
-          if (all_values_are_new_records(params_for_instance) ||
-            (!klass.exists?(params_for_instance)))
-            klass.new(params_for_instance)
-          end
+        if params_for_instance.is_a?(klass)
+          params_for_instance if params_for_instance.new_record?
         else
-          if params_for_instance.new_record?
-            params_for_instance
+          if all_values_are_new_records(params_for_instance) ||
+             !klass.exists?(params_for_instance)
+            klass.new(params_for_instance)
           end
         end
       end.compact.uniq
@@ -608,14 +617,15 @@ module MetadataChangesSupport
       end
     end
 
-    def _instances_deletion(klass, instances, &block)
+    def _instances_deletion(klass, instances)
       operations = block_given? ? yield(instances) : instances
       instances = instances.flatten
       ids_to_remove = instances.map(&:id).compact.uniq
 
-      klass.where(id: ids_to_remove).delete_all if ids_to_remove && !ids_to_remove.empty?
+      if ids_to_remove && !ids_to_remove.empty?
+        klass.where(id: ids_to_remove).delete_all
+      end
       operations
     end
-
   end
 end

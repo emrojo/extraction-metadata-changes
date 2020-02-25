@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'extraction_token_util'
 require 'json'
@@ -15,7 +17,7 @@ RSpec.describe MetadataChangesSupport::FactChanges do
   let(:updates2) { MetadataChangesSupport::FactChanges.new }
   let(:fact1) { build :fact, asset: asset1, predicate: property, object: value }
   let(:fact2) { build :fact, asset: asset1, predicate: relation, object_asset: asset2 }
-  let(:json) { {:"create_assets" => ["?p", "?q"], :"add_facts" => [["?p", "a", "Plate"]]}.to_json }
+  let(:json) { { "create_assets": ['?p', '?q'], "add_facts": [['?p', 'a', 'Plate']] }.to_json }
 
   describe '#new' do
     it 'parses a json and loads the config from it' do
@@ -27,9 +29,9 @@ RSpec.describe MetadataChangesSupport::FactChanges do
   describe '#parse_json' do
     let(:updates) { MetadataChangesSupport::FactChanges.new }
     it 'raises exception when the parsed object is not right' do
-      expect{
-        updates.parse_json("something went wrong!")
-      }.to raise_error(StandardError)
+      expect do
+        updates.parse_json('something went wrong!')
+      end.to raise_error(StandardError)
     end
     it 'parses a json and loads the changes from it' do
       expect(updates.facts_to_add.length).to eq(0)
@@ -37,25 +39,25 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       expect(updates.facts_to_add.length).to eq(1)
     end
     it 'parses an empty json' do
-      updates.parse_json("{}")
+      updates.parse_json('{}')
       expect(updates.facts_to_add.length).to eq(0)
     end
     it 'allows to add more changes after parsing' do
       updates.parse_json(json)
       expect(updates.facts_to_add.length).to eq(1)
-      updates.add("?q", "a", "Tube")
+      updates.add('?q', 'a', 'Tube')
       expect(updates.facts_to_add.length).to eq(2)
     end
     it 'does not destroy previously loaded changes' do
-      updates.create_assets(["?q"])
-      updates.add("?q", "a", "Tube")
+      updates.create_assets(['?q'])
+      updates.add('?q', 'a', 'Tube')
       expect(updates.facts_to_add.length).to eq(1)
       updates.parse_json(json)
       expect(updates.facts_to_add.length).to eq(2)
     end
 
     context 'when loading different json' do
-      let(:updates) {MetadataChangesSupport::FactChanges.new}
+      let(:updates) { MetadataChangesSupport::FactChanges.new }
       it 'loads created assets' do
         uuid = SecureRandom.uuid
         json = { create_assets: [uuid] }.to_json
@@ -83,26 +85,26 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       it 'loads added assets' do
         asset = build(:asset)
         group = build(:asset_group)
-        json = { add_assets: [[group.uuid, [asset.uuid] ]] }.to_json
+        json = { add_assets: [[group.uuid, [asset.uuid]]] }.to_json
         expect(updates.parse_json(json)).to eq(true)
         expect(updates.assets_to_add.length).to eq(1)
       end
       it 'loads removed assets' do
         asset = build(:asset)
         group = build(:asset_group)
-        json = { remove_assets: [[group.uuid, [asset.uuid] ]] }.to_json
+        json = { remove_assets: [[group.uuid, [asset.uuid]]] }.to_json
         expect(updates.parse_json(json)).to eq(true)
         expect(updates.assets_to_remove.length).to eq(1)
       end
       it 'loads facts to add' do
         asset = build(:asset)
-        json = {add_facts: [[asset.uuid, 'is', 'Cool']]}.to_json
+        json = { add_facts: [[asset.uuid, 'is', 'Cool']] }.to_json
         expect(updates.parse_json(json)).to eq(true)
         expect(updates.facts_to_add.length).to eq(1)
       end
       it 'loads removed facts' do
         asset = build(:asset)
-        json = {remove_facts: [[asset.uuid, 'is', 'Cool']]}.to_json
+        json = { remove_facts: [[asset.uuid, 'is', 'Cool']] }.to_json
         expect(updates.parse_json(json)).to eq(true)
         expect(updates.facts_to_destroy.length).to eq(1)
       end
@@ -113,14 +115,14 @@ RSpec.describe MetadataChangesSupport::FactChanges do
     let(:updates) { MetadataChangesSupport::FactChanges.new }
     it 'displays the contents of the object in json format' do
       updates.parse_json(json)
-      expect(updates.to_json.kind_of?(String)).to eq(true)
+      expect(updates.to_json.is_a?(String)).to eq(true)
     end
   end
 
   describe '#to_h' do
-    let(:updates) {MetadataChangesSupport::FactChanges.new}
+    let(:updates) { MetadataChangesSupport::FactChanges.new }
     it 'generates a hash' do
-      expect{updates.to_h}.not_to raise_error
+      expect { updates.to_h }.not_to raise_error
     end
     it 'creates assets and adds them to the hash' do
       uuid = SecureRandom.uuid
@@ -146,13 +148,13 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       asset = build(:asset)
       group = build(:asset_group)
       updates.add_assets([[group, [asset]]])
-      expect(updates.to_h).to include(add_assets: [[group.uuid,  [asset.uuid] ]])
+      expect(updates.to_h).to include(add_assets: [[group.uuid, [asset.uuid]]])
     end
     it 'adds removed assets from the group in the hash' do
       asset = build(:asset)
       group = build(:asset_group)
       updates.remove_assets([[group, [asset]]])
-      expect(updates.to_h).to include(remove_assets: [[group.uuid,  [asset.uuid] ]])
+      expect(updates.to_h).to include(remove_assets: [[group.uuid, [asset.uuid]]])
     end
     it 'adds facts to the hash' do
       asset = build(:asset)
@@ -178,7 +180,7 @@ RSpec.describe MetadataChangesSupport::FactChanges do
   end
   describe '#add' do
     it 'raises error if we use a wildcard not created before' do
-      expect{updates1.add("?p", property, value)}.to raise_error(StandardError)
+      expect { updates1.add('?p', property, value) }.to raise_error(StandardError)
     end
     it 'adds a new property' do
       expect(updates1.facts_to_add.length).to eq(0)
@@ -203,7 +205,7 @@ RSpec.describe MetadataChangesSupport::FactChanges do
         let(:uuid) { SecureRandom.uuid }
         it 'does not add the property if the uuid is not quoted because it tries to find it in local' do
           expect(updates1.facts_to_add.length).to eq(0)
-          expect{updates1.add(asset1, property, uuid)}.to raise_error(StandardError)
+          expect { updates1.add(asset1, property, uuid) }.to raise_error(StandardError)
         end
         it 'adds the property when quoted' do
           expect(updates1.facts_to_add.length).to eq(0)
@@ -283,7 +285,7 @@ RSpec.describe MetadataChangesSupport::FactChanges do
         end
         it 'does not add the property to remove if the uuid is not quoted because it tries to find it' do
           expect(updates1.facts_to_destroy.length).to eq(0)
-          expect{updates1.remove_where(fact1.asset, fact1.predicate, uuid)}.to raise_error(StandardError)
+          expect { updates1.remove_where(fact1.asset, fact1.predicate, uuid) }.to raise_error(StandardError)
         end
       end
     end
@@ -294,13 +296,13 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       asset = build(:asset)
       asset.facts << build(:fact, predicate: 'description', object: 'green')
       asset.facts << build(:fact, predicate: 'description', object: 'big')
-      expect(updates1.values_for_predicate(asset, 'description')).to eq(['green', 'big'])
+      expect(updates1.values_for_predicate(asset, 'description')).to eq(%w[green big])
     end
     it 'returns all the values that will be added' do
       asset = build(:asset)
       updates1.add(asset, 'description', 'tall')
       updates1.add(asset, 'description', 'slim')
-      expect(updates1.values_for_predicate(asset, 'description')).to eq(['tall', 'slim'])
+      expect(updates1.values_for_predicate(asset, 'description')).to eq(%w[tall slim])
     end
     it 'returns all the values both from the database and to add' do
       asset = build(:asset)
@@ -308,7 +310,7 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       asset.facts << build(:fact, predicate: 'description', object: 'big')
       updates1.add(asset, 'description', 'tall')
       updates1.add(asset, 'description', 'slim')
-      expect(updates1.values_for_predicate(asset, 'description')).to eq(['green', 'big', 'tall', 'slim'])
+      expect(updates1.values_for_predicate(asset, 'description')).to eq(%w[green big tall slim])
     end
 
     it 'return the values at the database and to add without the values that will be removed' do
@@ -324,7 +326,7 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       updates1.remove_where(asset, 'description', 'slim')
       updates1.remove_where(asset, 'description', 'green')
 
-      expect(updates1.values_for_predicate(asset, 'description')).to eq(['big', 'tall'])
+      expect(updates1.values_for_predicate(asset, 'description')).to eq(%w[big tall])
     end
 
     it 'does not return values from other instances' do
@@ -337,46 +339,42 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       updates1.add(asset, 'description', 'tall')
       updates1.add(asset2, 'description', 'small')
 
-      expect(updates1.values_for_predicate(asset, 'description')).to eq(['green', 'tall'])
+      expect(updates1.values_for_predicate(asset, 'description')).to eq(%w[green tall])
     end
-
   end
 
   describe '#create_assets' do
     it 'adds the list to the assets to create' do
-      updates1.create_assets(["?p", "?q", "?r"])
+      updates1.create_assets(['?p', '?q', '?r'])
       expect(updates1.assets_to_create.length).to eq(3)
     end
     it 'does not add twice the same asset' do
-      updates1.create_assets(["?p", "?q", "?p"])
+      updates1.create_assets(['?p', '?q', '?p'])
       expect(updates1.assets_to_create.length).to eq(2)
     end
     it 'does not raise error when referring to an asset not referred before' do
-      expect{updates1.create_assets([SecureRandom.uuid])}.not_to raise_error
+      expect { updates1.create_assets([SecureRandom.uuid]) }.not_to raise_error
     end
-
   end
 
   describe '#create_asset_groups' do
     it 'adds the list to the asset groups to create' do
-      updates1.create_asset_groups(["?p", "?q", "?r"])
+      updates1.create_asset_groups(['?p', '?q', '?r'])
       expect(updates1.asset_groups_to_create.length).to eq(3)
     end
     it 'does not add twice the same asset' do
-      updates1.create_asset_groups(["?p", "?q", "?p"])
+      updates1.create_asset_groups(['?p', '?q', '?p'])
       expect(updates1.asset_groups_to_create.length).to eq(2)
     end
     it 'does not raise error when referring to an asset not referred before' do
-      expect{updates1.create_asset_groups([SecureRandom.uuid])}.not_to raise_error
+      expect { updates1.create_asset_groups([SecureRandom.uuid]) }.not_to raise_error
     end
-
   end
 
-
   describe '#delete_assets' do
-    let(:asset1) { build(:asset, uuid: SecureRandom.uuid)}
-    let(:asset2) { build(:asset, uuid: SecureRandom.uuid)}
-    let(:asset3) { build(:asset, uuid: SecureRandom.uuid)}
+    let(:asset1) { build(:asset, uuid: SecureRandom.uuid) }
+    let(:asset2) { build(:asset, uuid: SecureRandom.uuid) }
+    let(:asset3) { build(:asset, uuid: SecureRandom.uuid) }
     it 'adds the list to the assets to destroy' do
       updates1.delete_assets([asset1.uuid, asset2.uuid, asset3.uuid])
       expect(updates1.assets_to_destroy.length).to eq(3)
@@ -386,14 +384,14 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       expect(updates1.assets_to_destroy.length).to eq(2)
     end
     it 'raises error when referring to an asset not referred before ' do
-      expect{updates1.delete_assets([SecureRandom.uuid])}.to raise_error(StandardError)
+      expect { updates1.delete_assets([SecureRandom.uuid]) }.to raise_error(StandardError)
     end
   end
 
   describe '#delete_asset_groups' do
-    let(:asset_group1) { build(:asset_group, uuid: SecureRandom.uuid)}
-    let(:asset_group2) { build(:asset_group, uuid: SecureRandom.uuid)}
-    let(:asset_group3) { build(:asset_group, uuid: SecureRandom.uuid)}
+    let(:asset_group1) { build(:asset_group, uuid: SecureRandom.uuid) }
+    let(:asset_group2) { build(:asset_group, uuid: SecureRandom.uuid) }
+    let(:asset_group3) { build(:asset_group, uuid: SecureRandom.uuid) }
     it 'adds the list to the asset groups to destroy' do
       updates1.delete_asset_groups([asset_group1.uuid, asset_group2.uuid, asset_group3.uuid])
       expect(updates1.asset_groups_to_destroy.length).to eq(3)
@@ -403,14 +401,14 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       expect(updates1.asset_groups_to_destroy.length).to eq(2)
     end
     it 'raises error when referring to an asset not referred before ' do
-      expect{updates1.delete_asset_groups([SecureRandom.uuid])}.to raise_error(StandardError)
+      expect { updates1.delete_asset_groups([SecureRandom.uuid]) }.to raise_error(StandardError)
     end
   end
 
   describe '#add_assets' do
-    let(:asset1) { build(:asset, uuid: SecureRandom.uuid)}
-    let(:asset2) { build(:asset, uuid: SecureRandom.uuid)}
-    let(:asset_group) { build(:asset_group, uuid: SecureRandom.uuid)}
+    let(:asset1) { build(:asset, uuid: SecureRandom.uuid) }
+    let(:asset2) { build(:asset, uuid: SecureRandom.uuid) }
+    let(:asset_group) { build(:asset_group, uuid: SecureRandom.uuid) }
     it 'adds the changes to the list of assets to add one for each asset' do
       updates1.add_assets([[asset_group, [asset1.uuid, asset2.uuid]]])
       expect(updates1.assets_to_add.length).to eq(2)
@@ -420,15 +418,14 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       expect(updates1.assets_to_add.length).to eq(1)
     end
     it 'raises error when referring to an asset group not referred before ' do
-      expect{updates1.add_assets([[SecureRandom.uuid, [asset1.uuid, asset2.uuid]]])}.to raise_error(StandardError)
+      expect { updates1.add_assets([[SecureRandom.uuid, [asset1.uuid, asset2.uuid]]]) }.to raise_error(StandardError)
     end
-
   end
 
   describe '#remove_assets' do
-    let(:asset1) { build(:asset, uuid: SecureRandom.uuid)}
-    let(:asset2) { build(:asset, uuid: SecureRandom.uuid)}
-    let(:asset_group) { build(:asset_group, uuid: SecureRandom.uuid)}
+    let(:asset1) { build(:asset, uuid: SecureRandom.uuid) }
+    let(:asset2) { build(:asset, uuid: SecureRandom.uuid) }
+    let(:asset_group) { build(:asset_group, uuid: SecureRandom.uuid) }
     it 'adds the changes to the list of assets to add one for each asset' do
       updates1.remove_assets([[asset_group, [asset1.uuid, asset2.uuid]]])
       expect(updates1.assets_to_remove.length).to eq(2)
@@ -438,9 +435,8 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       expect(updates1.assets_to_remove.length).to eq(1)
     end
     it 'raises error when referring to an asset group not referred before ' do
-      expect{updates1.remove_assets([[SecureRandom.uuid, [asset1.uuid, asset2.uuid]]])}.to raise_error(StandardError)
+      expect { updates1.remove_assets([[SecureRandom.uuid, [asset1.uuid, asset2.uuid]]]) }.to raise_error(StandardError)
     end
-
   end
 
   describe '#add_assets_to_group' do
@@ -448,69 +444,66 @@ RSpec.describe MetadataChangesSupport::FactChanges do
     let(:asset2) { build(:asset) }
     let(:asset_group) { build :asset_group }
     let(:updates) { MetadataChangesSupport::FactChanges.new }
-    let(:expectancy) {
-      [{asset_group: asset_group, asset: asset1},
-        {asset_group: asset_group, asset: asset2}
-      ]
-    }
+    let(:expectancy) do
+      [{ asset_group: asset_group, asset: asset1 },
+       { asset_group: asset_group, asset: asset2 }]
+    end
 
     it 'add assets to a group' do
-      expect{
+      expect do
         updates.add_assets_to_group(asset_group, [asset1, asset2])
-      }.to change{updates.assets_to_add.to_a}.from([]).to(expectancy)
+      end.to change { updates.assets_to_add.to_a }.from([]).to(expectancy)
     end
 
     context 'when receiving an empty list' do
       it 'does nothing' do
-        expect{
+        expect do
           updates.add_assets_to_group(asset_group, [])
-        }.not_to change{updates.assets_to_add.to_a}
+        end.not_to change { updates.assets_to_add.to_a }
       end
     end
   end
 
   describe '#remove_assets_from_group' do
-    let(:list) { 4.times.map{ build(:asset, :with_barcode) } }
+    let(:list) { 4.times.map { build(:asset, :with_barcode) } }
     let(:asset_group) { build(:asset_group, assets: list) }
     let(:updates) { MetadataChangesSupport::FactChanges.new }
-    let(:expectancy) {
-      [{asset_group: asset_group, asset: asset1},
-        {asset_group: asset_group, asset: asset2}
-      ]
-    }
+    let(:expectancy) do
+      [{ asset_group: asset_group, asset: asset1 },
+       { asset_group: asset_group, asset: asset2 }]
+    end
 
     it 'remove assets from a group' do
-      expect{
+      expect do
         updates.remove_assets_from_group(asset_group, [asset1, asset2])
-      }.to change{updates.assets_to_remove.to_a}.from([]).to(expectancy)
+      end.to change { updates.assets_to_remove.to_a }.from([]).to(expectancy)
     end
 
     context 'when receiving an empty list' do
       it 'does nothing' do
-        expect{
+        expect do
           updates.remove_assets_from_group(asset_group, [])
-        }.not_to change{updates.assets_to_remove.to_a}
+        end.not_to change { updates.assets_to_remove.to_a }
       end
     end
   end
 
-
   describe '#merge' do
     it 'returns another MetadataChangesSupport::FactChanges object' do
-      expect(updates1.merge(updates2).kind_of?(MetadataChangesSupport::FactChanges)).to eq(true)
+      expect(updates1.merge(updates2).is_a?(MetadataChangesSupport::FactChanges)).to eq(true)
     end
     it 'keeps track of elements already added/removed in previous object' do
       asset = build :asset
       fact = build(:fact, predicate: 'p', object: 'v')
       fact2 = build(:fact, predicate: 'p2', object: 'v2')
-      asset.facts<<fact
-      asset.facts<<fact2
+      asset.facts << fact
+      asset.facts << fact2
 
-      updates1.add(asset,fact.predicate,fact.object)
-      updates1.add(asset,fact2.predicate,fact2.object)
+      updates1.add(asset, fact.predicate, fact.object)
+      updates1.add(asset, fact2.predicate, fact2.object)
 
       expect(updates1.facts_to_add.count).to eq(2)
-      updates2.remove_where(asset,fact.predicate,fact.object)
+      updates2.remove_where(asset, fact.predicate, fact.object)
       updates1.merge(updates2)
       expect(updates1.facts_to_add.count).to eq(1)
       expect(updates2.facts_to_destroy.count).to eq(1)
@@ -520,33 +513,32 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       q = build :asset
 
       updates1.add(p, 'relates', q)
-      updates2.remove_where(p,'relates', q)
+      updates2.remove_where(p, 'relates', q)
 
       updates1.merge(updates2)
 
       expect(updates1.to_h).to eq({})
-
     end
     it 'keeps track of disabled changes when merging an object' do
       p = build :asset
       q = build :asset
 
       updates2.add(p, 'relates', q)
-      updates2.remove_where(p,'relates', q)
+      updates2.remove_where(p, 'relates', q)
       updates2.add(p, 'anotherRel', q)
 
       updates1.add(p, 'relates', q)
 
       updates1.merge(updates2)
 
-      expect(updates1.to_h).to eq({add_facts: [[p.uuid, 'anotherRel', q.uuid]]})
+      expect(updates1.to_h).to eq({ add_facts: [[p.uuid, 'anotherRel', q.uuid]] })
     end
     it 'keeps track of disabled changes after merging an object' do
       p = build :asset
       q = build :asset
 
       updates2.add(p, 'relates', q)
-      updates2.remove_where(p,'relates', q)
+      updates2.remove_where(p, 'relates', q)
       updates2.add(p, 'anotherRel', q)
 
       updates1.merge(updates2)
@@ -556,10 +548,10 @@ RSpec.describe MetadataChangesSupport::FactChanges do
 
       updates1.add(q, 'anotherRel', p)
 
-      expect(updates1.to_h).to eq({add_facts: [
-        [p.uuid, 'anotherRel', q.uuid],
-        [q.uuid, 'anotherRel', p.uuid]
-      ]})
+      expect(updates1.to_h).to eq({ add_facts: [
+                                    [p.uuid, 'anotherRel', q.uuid],
+                                    [q.uuid, 'anotherRel', p.uuid]
+                                  ] })
     end
     it 'disables an element because of changes merged' do
       p = build :asset
@@ -570,12 +562,12 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       updates1.merge(updates2)
 
       expect(updates1.to_h).to eq({
-        add_facts: [
-          [p.uuid, 'relates', q.uuid]
-        ]
-      })
+                                    add_facts: [
+                                      [p.uuid, 'relates', q.uuid]
+                                    ]
+                                  })
 
-      updates1.remove_where(p,'relates', q)
+      updates1.remove_where(p, 'relates', q)
 
       expect(updates1.to_h).to eq({})
     end
@@ -588,58 +580,57 @@ RSpec.describe MetadataChangesSupport::FactChanges do
       z = build :asset
       y = build :asset
 
-      #1 - will be removed by 4
+      # 1 - will be removed by 4
       updates1.add(p, 'relates', q)
-      #2 - will be removed by 9
+      # 2 - will be removed by 9
       updates1.add(asset, 'relates', asset2)
-      #3 - will be added by 6, so ignored
+      # 3 - will be added by 6, so ignored
       updates1.remove_where(q, 'relates', asset)
-      #4 - OK
+      # 4 - OK
       updates1.add(p, 'relates', q)
-      #5 - OK
+      # 5 - OK
       updates2.add(q, 'relates', z)
-      #6 - invalidated by 3
+      # 6 - invalidated by 3
       updates2.add(q, 'relates', asset)
-      #7 - OK
+      # 7 - OK
       updates2.remove_where(q, 'notRelates', z)
-      #8 - OK
+      # 8 - OK
       updates2.remove_where(q, 'relates', y)
-      #9 - Invalidated by 2
+      # 9 - Invalidated by 2
       updates2.remove_where(asset, 'relates', asset2)
 
       updates1.merge(updates2)
 
-
       expect(updates1.to_h).to include({
-        add_facts: [
-          [p.uuid, 'relates', q.uuid],
-          [q.uuid, 'relates', z.uuid]
-        ],
-        remove_facts: [
-          [q.uuid, 'notRelates', z.uuid],
-          [q.uuid, 'relates', y.uuid]
-        ]
-      })
+                                         add_facts: [
+                                           [p.uuid, 'relates', q.uuid],
+                                           [q.uuid, 'relates', z.uuid]
+                                         ],
+                                         remove_facts: [
+                                           [q.uuid, 'notRelates', z.uuid],
+                                           [q.uuid, 'relates', y.uuid]
+                                         ]
+                                       })
     end
     context 'when using wildcards' do
-      let(:obj) {MetadataChangesSupport::FactChanges.new}
-      let(:obj2) { MetadataChangesSupport::FactChanges.new}
+      let(:obj) { MetadataChangesSupport::FactChanges.new }
+      let(:obj2) { MetadataChangesSupport::FactChanges.new }
       before do
-        obj.create_assets(["?p"])
+        obj.create_assets(['?p'])
         obj2.merge(obj)
       end
       it 'merges wildcards used in other objects' do
-        expect{
-          obj2.add("?p", "a", "Tube")
-        }.not_to raise_error
+        expect  do
+          obj2.add('?p', 'a', 'Tube')
+        end.not_to raise_error
       end
       it 'merges mapping between wildcards and uuids from other objects' do
-        obj2.add("?p", "a", "Tube")
-        expect(obj.wildcards["?p"]).to eq(obj2.wildcards["?p"])
+        obj2.add('?p', 'a', 'Tube')
+        expect(obj.wildcards['?p']).to eq(obj2.wildcards['?p'])
       end
       it 'merges instances generated from other objects' do
-        obj2.add("?p", "a", "Tube")
-        expect(obj.instances_from_uuid[obj.wildcards["?p"]]).to eq(obj2.instances_from_uuid[obj2.wildcards["?p"]])
+        obj2.add('?p', 'a', 'Tube')
+        expect(obj.instances_from_uuid[obj.wildcards['?p']]).to eq(obj2.instances_from_uuid[obj2.wildcards['?p']])
       end
     end
     it 'merges changes from other objects' do
@@ -680,9 +671,7 @@ RSpec.describe MetadataChangesSupport::FactChanges do
 
   describe '#build_asset_groups' do
     it 'creates a new asset group' do
-      expect(MetadataChangesSupport::FactChanges.new.build_asset_groups(["?p"]).first.kind_of?(AssetGroup)).to eq(true)
+      expect(MetadataChangesSupport::FactChanges.new.build_asset_groups(['?p']).first.is_a?(AssetGroup)).to eq(true)
     end
   end
-
 end
-

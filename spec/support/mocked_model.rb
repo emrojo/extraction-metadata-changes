@@ -1,19 +1,19 @@
+# frozen_string_literal: true
+
 require 'pry'
 
 class MockedModel
-
-  def self.attrs=(params)
-    @attrs = params
+  class << self
+    attr_writer :attrs
   end
 
-  def self.attrs
-    @attrs
+  class << self
+    attr_reader :attrs
   end
 
   def attributes
-    self.class.attrs.reduce({}) do |memo, key|
+    self.class.attrs.each_with_object({}) do |key, memo|
       memo[key] = send(key)
-      memo
     end
   end
 
@@ -23,13 +23,14 @@ class MockedModel
 
   def self.attributes(params)
     self.attrs = params
-    params.each {|k| attr_accessor k }
+    params.each { |k| attr_accessor k }
   end
 
-  def initialize(params=nil)
+  def initialize(params = nil)
     self.class.instances.push(self)
     return if params.nil?
-    self.class.attrs.each{|k| send(:"#{k}=",params[k]) }
+
+    self.class.attrs.each { |k| send(:"#{k}=", params[k]) }
   end
 
   def self.find_by(params)
@@ -37,8 +38,8 @@ class MockedModel
   end
 
   def self.where(params)
-    self.instances.select do |instance|
-      params.keys.all? {|k| instance.send(k) == params[k] }
+    instances.select do |instance|
+      params.keys.all? { |k| instance.send(k) == params[k] }
     end
   end
 
@@ -46,11 +47,9 @@ class MockedModel
     true
   end
 
-  def save!
-  end
+  def save!; end
 
   def new_record?
     true
   end
-
 end

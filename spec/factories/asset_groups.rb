@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 class AssetGroup < MockedModel
-  attributes([:id, :uuid, :assets])
+  attributes(%i[id uuid assets])
 end
 
 FactoryBot.define do
@@ -11,6 +13,5 @@ FactoryBot.define do
     id { generate :asset_group_identifier }
     uuid { SecureRandom.uuid }
     assets { [] }
-
   end
 end
