@@ -1,5 +1,32 @@
 # frozen_string_literal: true
 
+#
+# *FactChanges*
+#
+# Any change of metadata is composed of small modifications related with each other
+# that can be applied in a transactional way so they can be cancelled, rolledback, etc.
+#
+# *About DisjointList*
+#
+# To be able to merge different configurations of changes, we need a way to keep track
+# on the properties and values that have been added and removed to keep the modifications
+# consistent, to avoid performing the operation twice, or in a wrong way.
+#
+# For instance, in these operations:
+#
+# > changes.add('?my_car', 'color', 'Red')
+# > changes.remove_where('?my_car', 'color', 'Red')
+#
+# This modifications have opposite meaning so they do not apply at all, but if we add this:
+#
+# > changes.add('?my_car', 'color', 'Bright')
+#
+# It can apply because it refers to a different value. All this logic about when a property
+# should not be part of the final transaction is performed using the DisjointList class,
+# by establishing a disjoint relations between opposite lists (added properties,
+# removed properties, etc...)
+#
+#
 require 'securerandom'
 require 'extraction_token_util'
 
@@ -309,9 +336,7 @@ module MetadataChangesSupport
         uuid = uuid_for_wildcard(instance_or_uuid_or_id)
         # Do not try to find it if it is a new wildcard created
         found = find_instance_from_uuid(klass, uuid) unless create
-        if !found && create
-          found = ((instances_from_uuid[uuid] ||= klass.new(uuid: uuid)))
-        end
+        found = ((instances_from_uuid[uuid] ||= klass.new(uuid: uuid))) if !found && create
       elsif ExtractionTokenUtil.uuid?(instance_or_uuid_or_id)
         found = find_instance_from_uuid(klass, instance_or_uuid_or_id)
         if !found && create
@@ -453,9 +478,7 @@ module MetadataChangesSupport
         )
       end
       _instances_deletion(AssetGroupsAsset, modified_list) do |asset_group_assets|
-        if with_operations
-          _asset_group_operations('removeAssets', step, asset_group_assets)
-        end
+        _asset_group_operations('removeAssets', step, asset_group_assets) if with_operations
       end
     end
 
@@ -489,9 +512,7 @@ module MetadataChangesSupport
     end
 
     def _detach_assets(step, assets, with_operations = true)
-      if with_operations
-        operations = _asset_operations('deleteAssets', step, assets)
-      end
+      operations = _asset_operations('deleteAssets', step, assets) if with_operations
       _instances_deletion(Fact, assets.map(&:facts).flatten.compact)
       _instances_deletion(AssetGroupsAsset, assets.map(&:asset_groups_assets).flatten.compact)
       operations
@@ -507,9 +528,7 @@ module MetadataChangesSupport
         )
         asset_group.save
       end
-      if with_operations
-        _asset_group_building_operations('createAssetGroups', step, asset_groups)
-      end
+      _asset_group_building_operations('createAssetGroups', step, asset_groups) if with_operations
     end
 
     def _detach_asset_groups(step, asset_groups, with_operations = true)
@@ -577,9 +596,7 @@ module MetadataChangesSupport
     def _fact_operations(action_type, step, facts)
       modified_assets = []
       operations = facts.map do |fact|
-        if listening_to_predicate?(fact.predicate)
-          modified_assets.push(fact.object_asset)
-        end
+        modified_assets.push(fact.object_asset) if listening_to_predicate?(fact.predicate)
         Operation.new(action_type: action_type, step: step,
                       asset: fact.asset, predicate: fact.predicate, object: fact.object, object_asset: fact.object_asset)
       end
@@ -622,9 +639,7 @@ module MetadataChangesSupport
       instances = instances.flatten
       ids_to_remove = instances.map(&:id).compact.uniq
 
-      if ids_to_remove && !ids_to_remove.empty?
-        klass.where(id: ids_to_remove).delete_all
-      end
+      klass.where(id: ids_to_remove).delete_all if ids_to_remove && !ids_to_remove.empty?
       operations
     end
   end

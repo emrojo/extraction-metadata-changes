@@ -1,5 +1,26 @@
 # frozen_string_literal: true
 
+# *DisjointList*
+#
+# This class DisjointList allow us to establish a relation between a list and a one or
+# more dependent lists where all lists behave as disjoint sets of elements where any
+# element added to any of the list cannot exist in anyother list at the same time so all
+# lists negate elements to each other.
+#
+# Eg:
+# > lists=[[], [], []].map {|a| MetadataChangesSupport::DisjointList.new(a)}
+# > lists[0].add_disjoint_list(lists[1])
+# > lists[0].add_disjoint_list(lists[2])
+# > lists[0]  << [1,2,3]
+# > puts "#{lists.map{|l| l.list}}"
+# [[1, 2, 3], [], []]
+# > lists[1] << [2,4,6]
+# > puts "#{lists.map{|l| l.list}}"
+# [[1, 3], [4, 6], []]
+# > lists[2] << [3,6,9]
+# > puts "#{lists.map{|l| l.list}}"
+# [[1], [4], [9]]
+#
 require 'securerandom'
 require 'google_hash'
 
@@ -128,9 +149,7 @@ module MetadataChangesSupport
     end
 
     def add(element)
-      if element.is_a?(MetadataChangesSupport::DisjointList)
-        return concat_disjoint_list(element)
-      end
+      return concat_disjoint_list(element) if element.is_a?(MetadataChangesSupport::DisjointList)
 
       if enabled_in_other_list?(element)
         disable(element)
@@ -163,9 +182,7 @@ module MetadataChangesSupport
 
     def merge(disjoint_list)
       disjoint_list.location_for_unique_id.keys.each do |key|
-        if !disjoint_list.include_key?(key) || disjoint_list.disabled_key?(key)
-          _disable(key)
-        end
+        _disable(key) if !disjoint_list.include_key?(key) || disjoint_list.disabled_key?(key)
       end
       disjoint_list.to_a.each { |val| add(val) }
       self

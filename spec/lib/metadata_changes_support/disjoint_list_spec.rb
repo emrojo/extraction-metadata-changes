@@ -5,6 +5,7 @@ require 'spec_helper'
 RSpec.describe MetadataChangesSupport::DisjointList do
   describe '#initialize' do
     it 'adds the elements of the list and caches info' do
+      debugger
       list = MetadataChangesSupport::DisjointList.new([1, 2, 3])
       expect(list.to_a).to eq([1, 2, 3])
     end
