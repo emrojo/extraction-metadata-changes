@@ -16,10 +16,8 @@ metadata modifications in a single transaction)
 
   s.add_dependency 'extraction_token_util', '~> 0.0.3a11'
   s.add_dependency 'google_hash', '~> 0.9'
-  s.add_development_dependency 'byebug'
   s.add_development_dependency 'factory_bot', '~> 5'
-  s.add_development_dependency 'pry'
   s.add_development_dependency 'rspec', '~> 3'
   s.add_development_dependency 'rubocop', '~> 0.80'
-  s.add_development_dependency 'rubocop-rspec'
+  s.add_development_dependency 'rubocop-rspec', '~> 1.38'
 end
