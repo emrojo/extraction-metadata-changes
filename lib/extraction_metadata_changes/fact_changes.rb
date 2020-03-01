@@ -492,29 +492,8 @@ module ExtractionMetadataChanges
     def _create_assets(step, assets, with_operations = true)
       return unless assets
 
-      count = Asset.count + 1
-      assets = assets.each_with_index.map do |asset, barcode_index|
-        _build_barcode(asset, count + barcode_index)
-        asset
-      end
       _instance_builder_for_import(Asset, assets) do |_instances|
         _asset_operations('createAssets', step, assets) if with_operations
-      end
-    end
-
-    ## TODO:
-    # Possibly it could be moved to Asset before_save callback
-    #
-    def _build_barcode(asset, num)
-      barcode_type = values_for_predicate(asset, 'barcodeType').first
-
-      return if barcode_type == 'NoBarcode'
-
-      barcode = values_for_predicate(asset, 'barcode').first
-      if barcode
-        asset.barcode = barcode
-      else
-        asset.build_barcode(num)
       end
     end
 
@@ -578,13 +557,13 @@ module ExtractionMetadataChanges
 
     def _asset_group_building_operations(action_type, step, asset_groups)
       asset_groups.map do |asset_group|
-        Operation.new(action_type: action_type, step: step, object: asset_group.uuid)
+        Operation.new(action_type: action_type, metadata_transaction: step, object: asset_group.uuid)
       end
     end
 
     def _asset_group_operations(action_type, step, asset_group_assets)
       asset_group_assets.map do |asset_group_asset, _index|
-        Operation.new(action_type: action_type, step: step,
+        Operation.new(action_type: action_type, metadata_transaction: step,
                       asset: asset_group_asset.asset, object: asset_group_asset.asset_group.uuid)
       end
     end
@@ -592,7 +571,7 @@ module ExtractionMetadataChanges
     def _asset_operations(action_type, step, assets)
       assets.map do |asset, _index|
         # refer = (action_type == 'deleteAsset' ? nil : asset)
-        Operation.new(action_type: action_type, step: step, object: asset.uuid)
+        Operation.new(action_type: action_type, metadata_transaction: step, object: asset.uuid)
       end
     end
 
@@ -604,7 +583,7 @@ module ExtractionMetadataChanges
       modified_assets = []
       operations = facts.map do |fact|
         modified_assets.push(fact.object_asset) if listening_to_predicate?(fact.predicate)
-        Operation.new(action_type: action_type, step: step,
+        Operation.new(action_type: action_type, metadata_transaction: step,
                       asset: fact.asset, predicate: fact.predicate, object: fact.object,
                       object_asset: fact.object_asset)
       end
