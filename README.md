@@ -1,12 +1,13 @@
-# metadata-changes-support
-Set of tools to provide transactions and tracking of changes for metadata updates.
+# extraction-metadata-changes
+Client interface tool that talks with the metadata service to store and apply all
+metadata modifications in a single transaction.
 
 # How to use it
 
-Add this to your Gemfile:
+Add this line to your Gemfile:
 
 ```ruby
-gem 'extraction-metadata-changes'
+gem "extraction_metadata_changes"
 ```
 
 # Getting started
@@ -27,47 +28,47 @@ modifications is:
 
 ```ruby
 # Using asset *variable* notation:
- > changes.create_assets(['?my_car', '?another_car'])
-Or any valid uuid:
- > changes.create_assets(['00000000-0000-0000-0000'])
- > changes.delete_assets(['00000000-0000-0000-0000'])
+ > changes.create_assets(["?my_car", "?another_car"])
+# Or any valid uuid:
+ > changes.create_assets(["00000000-0000-0000-0000"])
+ > changes.delete_assets(["00000000-0000-0000-0000"])
 ```
 
  * Add/Remove properties
 
 ```ruby
- > changes.add(asset.uuid, 'color', 'Red')
- > changes.remove_where(asset, 'size', 'Big')
+ > changes.add(asset.uuid, "color", "Red")
+ > changes.remove_where(asset, "size", "Big")
 ```
 
  * Add/Remove relations
 
 ``` ruby
- > changes.add(asset, 'quickerThan', asset2)
- > changes.removeWhere(asset, 'quickerThan', asset3)
+ > changes.add(asset, "quickerThan", asset2)
+ > changes.removeWhere(asset, "quickerThan", asset3)
  ```
 
  * Create/Delete groups of assets
 
 ```ruby
- # With *variable* notation:
- > changes.create_asset_groups(['?my_parking_of_cars', '?another'])
- With uuid:
- > changes.create_asset_groups(['00000000-0000-0000-0000'])
- > changes.delete_asset_groups(['00000000-0000-0000-0000'])
+ # With *variable* notation
+ > changes.create_asset_groups(["?my_parking_of_cars", "?another"])
+ # With uuid
+ > changes.create_asset_groups(["00000000-0000-0000-0000"])
+ > changes.delete_asset_groups(["00000000-0000-0000-0000"])
 ```
 
  * Add/Remove assets to/from groups
 
 ```ruby
- > changes.add_assets_to_group('?my_parking_of_cars', ['?my_car'])
- > changes.remove_assets_from_group('?my_parking_of_cars', ['?card_sold'])
+ > changes.add_assets_to_group("?my_parking_of_cars", ["?my_car"])
+ > changes.remove_assets_from_group("?my_parking_of_cars", ["?card_sold"])
 ```
 
  * Specify errors that will avoid the transaction to apply
 
 ```ruby
- > changes.set_errors(['This set of modifications are wrong.'])
+ > changes.set_errors(["This set of modifications are wrong."])
 ```
 
 # Applying the modifications
@@ -79,6 +80,6 @@ the apply method:
 > changes.apply(transaction_id)
 ```
 
-All modifications willb be joined under a single transaction, so we need to provide a unique
+All modifications will be joined under a single transaction, so we need to provide a unique
 identifier of this set of modifications. One way of doing this is keeping a separate table that will keep track of the transactions creation an using the id of this table as the transaction id for the metadata service. This transaction id will be the reference of the changes we have apply so we can roll it back later if we ever need it.
 that we have apply.
