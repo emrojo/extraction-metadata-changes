@@ -27,42 +27,40 @@ modifications is:
  * Create/Delete assets
 
 ```ruby
-# Using asset *variable* notation:
- > changes.create_assets(["?my_car", "?another_car"])
-# Or any valid uuid:
  > changes.create_assets(["00000000-0000-0000-0000"])
+ > changes.create_assets(["?my_car", "?my_previous_car", "?your_car"])
  > changes.delete_assets(["00000000-0000-0000-0000"])
 ```
+
+Created assets can be described by either an uuid or by using a *variable* notation. A variable is any string starting with '?' that will identify the created asset in subsequent modifications, so we can refer to it in a more meaningful way than with a uuid.
 
  * Add/Remove properties
 
 ```ruby
- > changes.add(asset.uuid, "color", "Red")
- > changes.remove_where(asset, "size", "Big")
+ > changes.add("?my_car", "color", "Red")
+ > changes.remove_where("00000000-0000-0000-0000", "size", "Big")
 ```
 
  * Add/Remove relations
 
 ``` ruby
- > changes.add(asset, "quickerThan", asset2)
- > changes.removeWhere(asset, "quickerThan", asset3)
+ > changes.add("?my_car", "quickerThan", "?your_car")
+ > changes.removeWhere("?my_car", "quickerThan", "?my_previous_car")
+ > changes.removeWhere("?my_previous_car", "quickerThan", "?my_car")
  ```
 
  * Create/Delete groups of assets
 
 ```ruby
- # With *variable* notation
- > changes.create_asset_groups(["?my_parking_of_cars", "?another"])
- # With uuid
- > changes.create_asset_groups(["00000000-0000-0000-0000"])
+ > changes.create_asset_groups(["?my_parking", "?a_parking_with_fees"])
  > changes.delete_asset_groups(["00000000-0000-0000-0000"])
 ```
 
  * Add/Remove assets to/from groups
 
 ```ruby
- > changes.add_assets_to_group("?my_parking_of_cars", ["?my_car"])
- > changes.remove_assets_from_group("?my_parking_of_cars", ["?card_sold"])
+ > changes.add_assets_to_group("?my_parking", ["?my_car"])
+ > changes.remove_assets_from_group("?a_parking_with_fees", ["?my_car"])
 ```
 
  * Specify errors that will avoid the transaction to apply
