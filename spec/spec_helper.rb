@@ -8,9 +8,9 @@ require 'byebug'
 require 'support/mocked_model'
 require 'support/mocked_relation'
 
-require 'metadata_changes_support'
-require 'metadata_changes_support/disjoint_list'
-require 'metadata_changes_support/fact_changes'
+require 'extraction_metadata_changes'
+require 'extraction_metadata_changes/disjoint_list'
+require 'extraction_metadata_changes/fact_changes'
 
 require 'factory_bot'
 

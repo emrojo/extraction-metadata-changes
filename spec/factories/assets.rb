@@ -19,7 +19,7 @@ FactoryBot.define do
     facts { MockedRelation.new([]) }
 
     after(:build) do |asset|
-      asset.facts.set_parent(asset)
+      asset.facts.parent = asset
     end
   end
 end

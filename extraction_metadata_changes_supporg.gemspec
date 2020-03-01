@@ -1,17 +1,18 @@
 # frozen_string_literal: true
 
 Gem::Specification.new do |s|
-  s.name = 'metadata_changes_support'
+  s.name = 'extraction_metadata_changes'
   version = '0.0.1a'
   version += (ENV['TRAVIS_BUILD_NUMBER']).to_s if version.end_with?('a')
   s.version = version
   s.date = '2020-02-22'
-  s.summary = 'Set of tools to provide transactions and tracking of changes for metadata updates'
+  s.summary = %(Client interface tool that talks with the metadata service to store and apply all
+metadata modifications in a single transaction)
   s.files = Dir['{lib}/**/*.rb', 'bin/*', 'LICENSE', '*.md']
   s.require_paths = ['lib']
   s.authors = ['Eduardo Martin Rojo']
   s.license = 'MIT'
-  s.homepage = 'https://rubygems.org/gems/metadata_changes_support'
+  s.homepage = 'https://rubygems.org/gems/extraction_metadata_changes'
 
   s.add_dependency 'extraction_token_util', '~> 0.0.3a11'
   s.add_dependency 'google_hash', '~> 0.9'

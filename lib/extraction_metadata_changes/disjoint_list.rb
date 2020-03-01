@@ -8,7 +8,7 @@
 # lists negate elements to each other.
 #
 # Eg:
-# > lists=[[], [], []].map {|a| MetadataChangesSupport::DisjointList.new(a)}
+# > lists=[[], [], []].map {|a| ExtractionMetadataChanges::DisjointList.new(a)}
 # > lists[0].add_disjoint_list(lists[1])
 # > lists[0].add_disjoint_list(lists[2])
 # > lists[0]  << [1,2,3]
@@ -24,7 +24,7 @@
 require 'securerandom'
 require 'google_hash'
 
-module MetadataChangesSupport
+module ExtractionMetadataChanges
   class DisjointList
     SEED_FOR_UNIQUE_IDS = Random.rand(1000)
     MAX_DEEP_UNIQUE_ID = 3
@@ -149,7 +149,9 @@ module MetadataChangesSupport
     end
 
     def add(element)
-      return concat_disjoint_list(element) if element.is_a?(MetadataChangesSupport::DisjointList)
+      return concat_disjoint_list(element) if element.is_a?(
+        ExtractionMetadataChanges::DisjointList
+      )
 
       if enabled_in_other_list?(element)
         disable(element)
@@ -245,7 +247,9 @@ module MetadataChangesSupport
         elsif element.key?(:predicate)
           _unique_id_for_fact(element)
         else
-          sum_function_for(element.keys.dup.concat(element.values.map { |val| _unique_id_for_element(val, deep + 1) }).join(''))
+          sum_function_for(element.keys.dup.concat(element.values.map do |val|
+            _unique_id_for_element(val, deep + 1)
+          end).join(''))
         end
       elsif element.is_a?(Enumerable)
         sum_function_for(element.map { |o| _unique_id_for_element(o, deep + 1) }.join(''))
@@ -258,7 +262,8 @@ module MetadataChangesSupport
       sum_function_for([
         (element[:asset_id] || element[:asset].id || element[:asset].object_id),
         element[:predicate],
-        (element[:object] || element[:object_asset_id] || element[:object_asset].id || element[:object_asset].object_id)
+        (element[:object] || element[:object_asset_id] || element[:object_asset].id ||
+          element[:object_asset].object_id)
       ].join('_'))
     end
   end

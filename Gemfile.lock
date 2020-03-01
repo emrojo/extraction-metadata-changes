@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    metadata_changes_support (0.0.1a)
+    extraction_metadata_changes (0.0.1a)
       extraction_token_util (~> 0.0.3a11)
       google_hash (~> 0.9)
 
@@ -75,8 +75,8 @@ PLATFORMS
 
 DEPENDENCIES
   byebug
+  extraction_metadata_changes!
   factory_bot (~> 5)
-  metadata_changes_support!
   pry
   rspec (~> 3)
   rubocop (~> 0.80)

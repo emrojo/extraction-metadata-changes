@@ -5,7 +5,7 @@ class MockedRelation
     @list = list
   end
 
-  def set_parent(parent_instance)
+  def parent=(parent_instance)
     @parent_instance = parent_instance
   end
 

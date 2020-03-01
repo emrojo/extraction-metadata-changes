@@ -30,7 +30,7 @@
 require 'securerandom'
 require 'extraction_token_util'
 
-module MetadataChangesSupport
+module ExtractionMetadataChanges
   class FactChanges
     attr_accessor :facts_to_destroy, :facts_to_add, :assets_to_create, :assets_to_destroy,
                   :assets_to_add, :assets_to_remove, :wildcards, :instances_from_uuid,
@@ -66,8 +66,8 @@ module MetadataChangesSupport
     end
 
     def build_disjoint_lists(list, opposite)
-      list1 = MetadataChangesSupport::DisjointList.new([])
-      list2 = MetadataChangesSupport::DisjointList.new([])
+      list1 = ExtractionMetadataChanges::DisjointList.new([])
+      list2 = ExtractionMetadataChanges::DisjointList.new([])
 
       list1.add_disjoint_list(list2)
 
@@ -312,19 +312,27 @@ module MetadataChangesSupport
     end
 
     def find_assets(assets_or_uuids)
-      assets_or_uuids.uniq.map { |asset_or_uuid| find_instance_of_class_by_uuid(Asset, asset_or_uuid) }
+      assets_or_uuids.uniq.map do |asset_or_uuid|
+        find_instance_of_class_by_uuid(Asset, asset_or_uuid)
+      end
     end
 
     def build_assets(assets)
-      assets.uniq.map { |asset_or_uuid| find_instance_of_class_by_uuid(Asset, asset_or_uuid, true) }
+      assets.uniq.map do |asset_or_uuid|
+        find_instance_of_class_by_uuid(Asset, asset_or_uuid, true)
+      end
     end
 
     def find_asset_groups(asset_groups_or_uuids)
-      asset_groups_or_uuids.uniq.map { |asset_group_or_uuid| find_instance_of_class_by_uuid(AssetGroup, asset_group_or_uuid) }
+      asset_groups_or_uuids.uniq.map do |asset_group_or_uuid|
+        find_instance_of_class_by_uuid(AssetGroup, asset_group_or_uuid)
+      end
     end
 
     def build_asset_groups(asset_groups)
-      asset_groups.uniq.map { |asset_group_or_uuid| find_instance_of_class_by_uuid(AssetGroup, asset_group_or_uuid, true) }
+      asset_groups.uniq.map do |asset_group_or_uuid|
+        find_instance_of_class_by_uuid(AssetGroup, asset_group_or_uuid, true)
+      end
     end
 
     def is_new_record?(uuid)
@@ -340,13 +348,17 @@ module MetadataChangesSupport
       elsif ExtractionTokenUtil.uuid?(instance_or_uuid_or_id)
         found = find_instance_from_uuid(klass, instance_or_uuid_or_id)
         if !found && create
-          found = ((instances_from_uuid[instance_or_uuid_or_id] ||= klass.new(uuid: instance_or_uuid_or_id)))
+          found = ((instances_from_uuid[instance_or_uuid_or_id] ||= klass.new(
+            uuid: instance_or_uuid_or_id
+          )))
         end
       else
         found = instance_or_uuid_or_id
       end
       unless found
-        _produce_error(["Element identified by #{instance_or_uuid_or_id} should be declared before using it"])
+        _produce_error([%(
+          Element identified by #{instance_or_uuid_or_id} should be declared before using it
+        )])
       end
       found
     end
@@ -388,19 +400,16 @@ module MetadataChangesSupport
 
     def create_asset_groups(asset_groups)
       asset_groups_to_create << validate_instances(build_asset_groups(asset_groups))
-      # asset_groups_to_create.concat(validate_instances(build_asset_groups(asset_groups))).uniq!
       self
     end
 
     def delete_asset_groups(asset_groups)
       asset_groups_to_destroy << validate_instances(find_asset_groups(asset_groups))
-      # asset_groups_to_destroy.concat(validate_instances(find_asset_groups(asset_groups))).uniq!
       self
     end
 
     def delete_assets(assets)
       assets_to_destroy << validate_instances(find_assets(assets))
-      # assets_to_destroy.concat(validate_instances(find_assets(assets))).uniq!
       self
     end
 
@@ -438,8 +447,6 @@ module MetadataChangesSupport
         end
         assets = validate_instances(find_assets(asset_ids))
         assets_to_remove << assets.map { |asset| { asset_group: asset_group, asset: asset } }
-        # add_to_list_keep_unique(assets.map{|asset| { asset_group: asset_group, asset: asset} }, :assets_to_remove, :assets_to_add)
-        # assets_to_remove.concat(assets.map{|asset| { asset_group: asset_group, asset: asset} })
       end
       self
     end
@@ -598,7 +605,8 @@ module MetadataChangesSupport
       operations = facts.map do |fact|
         modified_assets.push(fact.object_asset) if listening_to_predicate?(fact.predicate)
         Operation.new(action_type: action_type, step: step,
-                      asset: fact.asset, predicate: fact.predicate, object: fact.object, object_asset: fact.object_asset)
+                      asset: fact.asset, predicate: fact.predicate, object: fact.object,
+                      object_asset: fact.object_asset)
       end
       modified_assets.flatten.compact.uniq.each(&:touch)
       operations
