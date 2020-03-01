@@ -69,7 +69,7 @@ Created assets can be described by either an uuid or by using a *variable* notat
  > changes.set_errors(["This set of modifications are wrong."])
 ```
 
-# Applying the modifications
+## Applying the modifications
 
 Once we have completed all changes we want to apply in a single transaction, we can run
 the apply method:
