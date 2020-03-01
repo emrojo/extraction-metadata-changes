@@ -1,30 +1,14 @@
 # frozen_string_literal: true
 
-# *DisjointList*
-#
-# This class DisjointList allow us to establish a relation between a list and a one or
-# more dependent lists where all lists behave as disjoint sets of elements where any
-# element added to any of the list cannot exist in anyother list at the same time so all
-# lists negate elements to each other.
-#
-# Eg:
-# > lists=[[], [], []].map {|a| ExtractionMetadataChanges::DisjointList.new(a)}
-# > lists[0].add_disjoint_list(lists[1])
-# > lists[0].add_disjoint_list(lists[2])
-# > lists[0]  << [1,2,3]
-# > puts "#{lists.map{|l| l.list}}"
-# [[1, 2, 3], [], []]
-# > lists[1] << [2,4,6]
-# > puts "#{lists.map{|l| l.list}}"
-# [[1, 3], [4, 6], []]
-# > lists[2] << [3,6,9]
-# > puts "#{lists.map{|l| l.list}}"
-# [[1], [4], [9]]
-#
 require 'securerandom'
 require 'google_hash'
 
 module ExtractionMetadataChanges
+  # This class DisjointList allow us to establish a relation between a list and a one or
+  # more dependent lists where all lists behave as disjoint sets of elements where any
+  # element added to any of the list cannot exist in anyother list at the same time so all
+  # lists negate elements to each other.
+  #
   class DisjointList
     SEED_FOR_UNIQUE_IDS = Random.rand(1000)
     MAX_DEEP_UNIQUE_ID = 3
@@ -216,11 +200,9 @@ module ExtractionMetadataChanges
           if location_for_unique_id[key].nil?
             location_for_unique_id[key] = disjoint_list.location_for_unique_id[key]
             _disable(key) if location_for_unique_id[key] == DISABLED_NAME
-          else
+          elsif location_for_unique_id[key] != disjoint_list.location_for_unique_id[key]
             # If my lists have the element alredy
-            if location_for_unique_id[key] != disjoint_list.location_for_unique_id[key]
-              _disable(key)
-            end
+            _disable(key)
           end
         end
       end

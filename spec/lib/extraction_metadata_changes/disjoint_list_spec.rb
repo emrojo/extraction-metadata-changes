@@ -55,7 +55,7 @@ RSpec.describe ExtractionMetadataChanges::DisjointList do
     end
 
     it 'can generate same id for different copies of the same ActiveRecord' do
-      fact1 = build(:fact, predicate: 'p', object: 'v')
+      build(:fact, predicate: 'p', object: 'v')
       f1 = Fact.where(predicate: 'p', object: 'v').first
       f2 = Fact.where(predicate: 'p').first
       expect(list.unique_id_for_element(f1)).to eq(list.unique_id_for_element(f2))
@@ -71,8 +71,8 @@ RSpec.describe ExtractionMetadataChanges::DisjointList do
     end
 
     it 'can generate an id for a relation' do
-      fact1 = build(:fact, predicate: 'p', object: 'v')
-      fact2 = build(:fact, predicate: 'r', object: 's')
+      build(:fact, predicate: 'p', object: 'v')
+      build(:fact, predicate: 'r', object: 's')
       f1 = Fact.where(predicate: 'p', object: 'v')
       f2 = Fact.where(predicate: 'p')
       f3 = Fact.where(predicate: 'r')

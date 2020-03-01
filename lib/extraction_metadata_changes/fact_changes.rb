@@ -1,36 +1,34 @@
 # frozen_string_literal: true
 
-#
-# *FactChanges*
-#
-# Any change of metadata is composed of small modifications related with each other
-# that can be applied in a transactional way so they can be cancelled, rolledback, etc.
-#
-# *About DisjointList*
-#
-# To be able to merge different configurations of changes, we need a way to keep track
-# on the properties and values that have been added and removed to keep the modifications
-# consistent, to avoid performing the operation twice, or in a wrong way.
-#
-# For instance, in these operations:
-#
-# > changes.add('?my_car', 'color', 'Red')
-# > changes.remove_where('?my_car', 'color', 'Red')
-#
-# This modifications have opposite meaning so they do not apply at all, but if we add this:
-#
-# > changes.add('?my_car', 'color', 'Bright')
-#
-# It can apply because it refers to a different value. All this logic about when a property
-# should not be part of the final transaction is performed using the DisjointList class,
-# by establishing a disjoint relations between opposite lists (added properties,
-# removed properties, etc...)
-#
-#
 require 'securerandom'
 require 'extraction_token_util'
 
 module ExtractionMetadataChanges
+  #
+  # Any change of metadata is composed of small modifications related with each other
+  # that can be applied in a transactional way so they can be cancelled, rolledback, etc.
+  #
+  # *About DisjointList*
+  #
+  # To be able to merge different configurations of changes, we need a way to keep track
+  # on the properties and values that have been added and removed to keep the modifications
+  # consistent, to avoid performing the operation twice, or in a wrong way.
+  #
+  # For instance, in these operations:
+  #
+  # > changes.add('?my_car', 'color', 'Red')
+  # > changes.remove_where('?my_car', 'color', 'Red')
+  #
+  # This modifications have opposite meaning so they do not apply at all, but if we add this:
+  #
+  # > changes.add('?my_car', 'color', 'Bright')
+  #
+  # It can apply because it refers to a different value. All this logic about when a property
+  # should not be part of the final transaction is performed using the DisjointList class,
+  # by establishing a disjoint relations between opposite lists (added properties,
+  # removed properties, etc...)
+  #
+  #
   class FactChanges
     attr_accessor :facts_to_destroy, :facts_to_add, :assets_to_create, :assets_to_destroy,
                   :assets_to_add, :assets_to_remove, :wildcards, :instances_from_uuid,
@@ -76,11 +74,12 @@ module ExtractionMetadataChanges
     end
 
     def asset_group_asset_to_h(asset_group_asset_str)
-      asset_group_asset_str.each_with_object({}) do |o, memo|
+      obj = asset_group_asset_str.each_with_object({}) do |o, memo|
         key = o[:asset_group]&.uuid || nil
         memo[key] = [] unless memo[key]
         memo[key].push(o[:asset].uuid)
-      end.map do |k, v|
+      end
+      obj.map do |k, v|
         [k, v]
       end
     end
@@ -131,49 +130,50 @@ module ExtractionMetadataChanges
 
     def values_for_predicate(asset, predicate)
       actual_values = asset.facts.with_predicate(predicate).map(&:object)
-      values_to_add = facts_to_add.select do |f|
-        (f[:asset] == asset) && (f[:predicate] == predicate)
-      end.map { |f| f[:object] }
-      values_to_destroy = facts_to_destroy.select do |f|
-        (f[:asset] == asset) && (f[:predicate] == predicate)
-      end.map { |f| f[:object] }
+      values_to_add = facts_to_add.map do |f|
+        f[:object] if (f[:asset] == asset) && (f[:predicate] == predicate)
+      end.compact
+      values_to_destroy = facts_to_destroy.map do |f|
+        f[:object] if (f[:asset] == asset) && (f[:predicate] == predicate)
+      end.compact
       (actual_values + values_to_add - values_to_destroy)
     end
 
-    def _build_fact_attributes(s, p, o, options = {})
-      t = [s, p, o, options]
+    def _build_fact_attributes(asset, predicate, object, options = {})
+      t = [asset, predicate, object, options]
       params = { asset: t[0], predicate: t[1], literal: !t[2].is_a?(Asset) }
       params[:literal] ? params[:object] = t[2] : params[:object_asset] = t[2]
       params = params.merge(t[3]) if t[3]
       params
     end
 
-    def add(s, p, o, options = {})
-      s = find_asset(s)
-      o = options[:literal] == true ? literal_token(o) : find_asset(o)
+    def add(asset, predicate, object, options = {})
+      asset = find_asset(asset)
+      object = options[:literal] == true ? literal_token(object) : find_asset(object)
 
-      fact = _build_fact_attributes(s, p, o, options)
+      fact = _build_fact_attributes(asset, predicate, object, options)
 
       facts_to_add << fact if fact
-      # facts_to_add.push(track_object(params)) unless detected
     end
 
     def literal_token(str)
       ExtractionTokenUtil.quote_if_uuid(str)
     end
 
-    def add_facts(listOfLists)
-      listOfLists.each { |list| add(list[0], list[1], list[2]) }
+    def add_facts(lists)
+      lists.each { |list| add(list[0], list[1], list[2]) }
       self
     end
 
-    def remove_facts(listOfLists)
-      listOfLists.each { |list| remove_where(list[0], list[1], list[2]) }
+    def remove_facts(lists)
+      lists.each { |list| remove_where(list[0], list[1], list[2]) }
       self
     end
 
-    def add_remote(s, p, o, options = {})
-      add(s, p, o, options.merge({ is_remote?: true })) if s && p && o
+    def add_remote(asset, predicate, object, options = {})
+      return unless asset && predicate && object
+
+      add(asset, predicate, object, options.merge({ is_remote?: true }))
     end
 
     def replace_remote_relation(asset, predicate, object_asset, options = {})
@@ -184,25 +184,25 @@ module ExtractionMetadataChanges
       replace_remote(asset, predicate, value, options.merge({ literal: true }))
     end
 
-    def replace_remote(asset, p, o, options = {})
-      if asset && p && o
-        asset.facts.with_predicate(p).each do |fact|
-          # The value is updated from the remote instance so we remove the previous value
-          remove(fact)
-          # In any case they will be set as Remote, even if they are not removed in this update
-          facts_to_set_to_remote << fact
-        end
-        add_remote(asset, p, o, options)
+    def replace_remote(asset, predicate, object, options = {})
+      return unless asset && predicate && object
+
+      asset.facts.with_predicate(predicate).each do |fact|
+        # The value is updated from the remote instance so we remove the previous value
+        remove(fact)
+        # In any case they will be set as Remote, even if they are not removed in this update
+        facts_to_set_to_remote << fact
       end
+      add_remote(asset, predicate, object, options)
     end
 
-    def remove(f)
-      return if f.nil?
+    def remove(fact)
+      return if fact.nil?
 
-      if f.is_a?(Enumerable)
-        facts_to_destroy << f.map { |o| o.attributes.symbolize_keys }
-      elsif f.is_a?(Fact)
-        facts_to_destroy << f.attributes.symbolize_keys if f
+      if fact.is_a?(Enumerable)
+        facts_to_destroy << fact.map { |o| o.attributes.symbolize_keys }
+      elsif fact.is_a?(Fact)
+        facts_to_destroy << fact.attributes.symbolize_keys if fact
       end
     end
 
@@ -215,15 +215,15 @@ module ExtractionMetadataChanges
       facts_to_destroy << fact if fact
     end
 
-    def has_errors?
+    def errors?
       to_h.key?(:set_errors)
     end
 
-    def merge_hash(h1, h2)
-      h2.keys.each do |k|
-        h1[k] = h2[k]
+    def merge_hash(hash1, hash2)
+      hash2.keys.each do |k|
+        hash1[k] = hash2[k]
       end
-      h1
+      hash1
     end
 
     def merge(fact_changes)
@@ -335,8 +335,8 @@ module ExtractionMetadataChanges
       end
     end
 
-    def is_new_record?(uuid)
-      !!(instances_from_uuid[uuid] && instances_from_uuid[uuid].new_record?)
+    def new_record?(uuid)
+      (instances_from_uuid[uuid] && instances_from_uuid[uuid].new_record?) == true
     end
 
     def find_instance_of_class_by_uuid(klass, instance_or_uuid_or_id, create = false)
@@ -372,7 +372,7 @@ module ExtractionMetadataChanges
     end
 
     def find_instance_from_uuid(klass, uuid)
-      found = klass.find_by(uuid: uuid) unless is_new_record?(uuid)
+      found = klass.find_by(uuid: uuid) unless new_record?(uuid)
       return found if found
 
       instances_from_uuid[uuid]
@@ -505,16 +505,16 @@ module ExtractionMetadataChanges
     ## TODO:
     # Possibly it could be moved to Asset before_save callback
     #
-    def _build_barcode(asset, i)
+    def _build_barcode(asset, num)
       barcode_type = values_for_predicate(asset, 'barcodeType').first
 
-      unless barcode_type == 'NoBarcode'
-        barcode = values_for_predicate(asset, 'barcode').first
-        if barcode
-          asset.barcode = barcode
-        else
-          asset.build_barcode(i)
-        end
+      return if barcode_type == 'NoBarcode'
+
+      barcode = values_for_predicate(asset, 'barcode').first
+      if barcode
+        asset.barcode = barcode
+      else
+        asset.build_barcode(num)
       end
     end
 
@@ -622,24 +622,22 @@ module ExtractionMetadataChanges
       instances = params_list.map do |params_for_instance|
         if params_for_instance.is_a?(klass)
           params_for_instance if params_for_instance.new_record?
-        else
-          if all_values_are_new_records(params_for_instance) ||
-             !klass.exists?(params_for_instance)
-            klass.new(params_for_instance)
-          end
+        elsif all_values_are_new_records(params_for_instance) ||
+              !klass.exists?(params_for_instance)
+          klass.new(params_for_instance)
         end
       end.compact.uniq
       instances.each do |instance|
         instance.run_callbacks(:save) { false }
         instance.run_callbacks(:create) { false }
       end
-      if instances && !instances.empty?
-        klass.import(instances)
-        # import does not return the ids for the instances, so we need to reload
-        # again. Uuid is the only identificable attribute set
-        klass.synchronize(instances, [:uuid]) if klass == Asset
-        yield instances
-      end
+      return unless instances && !instances.empty?
+
+      klass.import(instances)
+      # import does not return the ids for the instances, so we need to reload
+      # again. Uuid is the only identificable attribute set
+      klass.synchronize(instances, [:uuid]) if klass == Asset
+      yield instances
     end
 
     def _instances_deletion(klass, instances)
