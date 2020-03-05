@@ -246,7 +246,8 @@ module ExtractionMetadataChanges
     end
 
     def apply(step, with_operations = true)
-      _handle_errors(step) unless errors_added.empty?
+      return false unless errors_added.empty?
+
       ActiveRecord::Base.transaction do |_t|
         # We need step to have an allocated id to be able to link it with the operations
         # so we have to create a new record if is not already stored
@@ -275,7 +276,8 @@ module ExtractionMetadataChanges
           @operations = operations
         end
         step.save if step.changed?
-        _handle_errors(step) unless errors_added.empty?
+        return false unless errors_added.empty?
+
         reset
       end
     end
@@ -453,15 +455,6 @@ module ExtractionMetadataChanges
 
     private
 
-    def _handle_errors(step)
-      step.set_errors(errors_added)
-      _produce_error(errors_added) unless errors_added.empty?
-    end
-
-    def _produce_error(errors_added)
-      raise StandardError.new(message: errors_added.join("\n"))
-    end
-
     def _set_remote_facts(facts)
       Fact.where(id: facts.map(&:id).uniq.compact).update_all(is_remote?: true)
     end
@@ -557,13 +550,13 @@ module ExtractionMetadataChanges
 
     def _asset_group_building_operations(action_type, step, asset_groups)
       asset_groups.map do |asset_group|
-        Operation.new(action_type: action_type, metadata_transaction: step, object: asset_group.uuid)
+        Operation.new(action_type: action_type, change: step, object: asset_group.uuid)
       end
     end
 
     def _asset_group_operations(action_type, step, asset_group_assets)
       asset_group_assets.map do |asset_group_asset, _index|
-        Operation.new(action_type: action_type, metadata_transaction: step,
+        Operation.new(action_type: action_type, change: step,
                       asset: asset_group_asset.asset, object: asset_group_asset.asset_group.uuid)
       end
     end
@@ -571,7 +564,7 @@ module ExtractionMetadataChanges
     def _asset_operations(action_type, step, assets)
       assets.map do |asset, _index|
         # refer = (action_type == 'deleteAsset' ? nil : asset)
-        Operation.new(action_type: action_type, metadata_transaction: step, object: asset.uuid)
+        Operation.new(action_type: action_type, change: step, object: asset.uuid)
       end
     end
 
@@ -583,7 +576,7 @@ module ExtractionMetadataChanges
       modified_assets = []
       operations = facts.map do |fact|
         modified_assets.push(fact.object_asset) if listening_to_predicate?(fact.predicate)
-        Operation.new(action_type: action_type, metadata_transaction: step,
+        Operation.new(action_type: action_type, change: step,
                       asset: fact.asset, predicate: fact.predicate, object: fact.object,
                       object_asset: fact.object_asset)
       end

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'pry'
-
 class MockedModel
   class << self
     attr_writer :attrs

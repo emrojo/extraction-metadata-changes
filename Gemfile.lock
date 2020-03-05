@@ -69,7 +69,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  byebug
+  byebug (~> 11)
   extraction_metadata_changes!
   factory_bot (~> 5)
   rspec (~> 3)
